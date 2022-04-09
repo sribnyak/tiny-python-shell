@@ -1,7 +1,8 @@
-"""Implementation of MyShell
+"""An interactive shell with partial bash functionality
 """
 
 import os
+import shutil
 from pathlib import Path
 
 PROJECT_NAME = 'MyShell'
@@ -12,11 +13,13 @@ class Command:
     """A class with all required information about a command:
     name, a number of arguments, description, and the command itself."""
 
-    def __init__(self, name, arg_counter, action, doc):
+    def __init__(self, name, arg_counter, action, description=None):
+        """Construct a new Command.
+        By default, the description is taken from `action` docstring"""
         self.name = name
         self.arg_counter = arg_counter
         self.action = action
-        self.doc = doc
+        self.description = description if description else action.__doc__
 
     def run(self, *args):
         """Check if the number of arguments is correct and run the command.
@@ -99,40 +102,65 @@ def print_file(filename: str):
         print(file.read(), end='')
 
 
+def copy_file(source: str, dest: str):
+    """Copy a file"""
+    assure_file_exists(source)
+    assure_can_create(dest)
+    shutil.copy2(source, dest)
+
+
+def move_file(source: str, dest: str):
+    """Move (rename) a file"""
+    assure_file_exists(source)
+    assure_can_create(dest)
+    shutil.move(source, dest)
+
+
 def my_help():
     """Print a help message with a list of all available commands"""
     print('Available commands:')
     for command in commands:
-        print(command.name, '-', command.doc)
+        print(command.name, '-', command.description)
 
 
 commands = [
     Command('pwd', 0,
             lambda: print(os.getcwd()),
-            'print name of current/working directory'),
+            'Print name of current/working directory'),
     Command('ls', 0,
             lambda: print(*sorted(os.listdir()), sep='  '),
-            'list directory contents'),
-    Command('cd', 1, change_directory, 'change the current working directory'),
-    # todo cp
-    # todo mv
-    Command('rm', 1, remove_file, 'remove a file'),
-    Command('rmdir', 1, remove_directory, 'remove an empty directory'),
-    Command('mkdir', 1, make_directory, 'make a directory'),
-    Command('hw', 1, hello, 'make a text file with "Hello, world!" in it'),
-    Command('cat', 1, print_file, 'print file contents'),
-    Command('help', 0, my_help, 'print this help message'),
-    Command('exit', 0, lambda: None, 'cause normal process termination'),
+            'List directory contents'),
+    Command('cd', 1, change_directory),
+    Command('cp', 2, copy_file),
+    Command('mv', 2, move_file),
+    Command('rm', 1, remove_file),
+    Command('rmdir', 1, remove_directory),
+    Command('mkdir', 1, make_directory),
+    Command('hw', 1, hello),
+    Command('cat', 1, print_file),
+    Command('help', 0, my_help, 'Print this help message'),
+    Command('exit', 0, lambda: None, 'Cause normal process termination'),
 ]
 
 commands_dict = {command.name: command for command in commands}
+
+
+def split_command(command):
+    """Split a command string considering that spaces can be
+    escaped with a backslash"""
+    # (assuming '\b' and '\n' cannot be found in a command)
+    # this solution is used to avoid writing a lexical analyzer
+    return [word.replace('\b', '\\').replace('\n', ' ')
+            for word in
+            command.replace('\\\\', '\b').replace('\\ ', '\n').split(' ')
+            if word]
 
 
 def run_command(command: str):
     """Interpret a command given as a stripped string"""
     if not command:
         return
-    command, *args = command.split()
+    command, *args = split_command(command)
     if command in commands_dict:
         commands_dict[command].run(*args)
     else:
@@ -141,6 +169,7 @@ def run_command(command: str):
 
 def main():
     """An entry point to an interactive shell"""
+
     print(f'Welcome to {PROJECT_NAME} by {AUTHOR}')
     print('Type "help" for more information.')
 
