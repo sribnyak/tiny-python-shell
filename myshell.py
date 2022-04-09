@@ -11,7 +11,7 @@ AUTHOR = 'Alexander Sribnyak'
 
 class Command:
     """A class with all required information about a command:
-    name, a number of arguments, description, and the command itself."""
+    name, number of arguments, description, and the command itself."""
 
     def __init__(self, name, arg_counter, action, description=None):
         """Construct a new Command.
@@ -121,6 +121,7 @@ def my_help():
     print('Available commands:')
     for command in commands:
         print(command.name, '-', command.description)
+    print('To use whitespaces in paths, type a backslash before ("\\ ")')
 
 
 commands = [
@@ -138,6 +139,7 @@ commands = [
     Command('mkdir', 1, make_directory),
     Command('hw', 1, hello),
     Command('cat', 1, print_file),
+    Command('run', 1, os.system, 'Run an executable'),
     Command('help', 0, my_help, 'Print this help message'),
     Command('exit', 0, lambda: None, 'Cause normal process termination'),
 ]
@@ -146,7 +148,7 @@ commands_dict = {command.name: command for command in commands}
 
 
 def split_command(command):
-    """Split a command string considering that spaces can be
+    """Split the command string considering that spaces can be
     escaped with a backslash"""
     # (assuming '\b' and '\n' cannot be found in a command)
     # this solution is used to avoid writing a lexical analyzer
@@ -157,18 +159,25 @@ def split_command(command):
 
 
 def run_command(command: str):
-    """Interpret a command given as a stripped string"""
+    """Interpret a command given as a stripped string.
+    To use whitespaces in paths, type a backslash before (\"\\ \")"""
+
     if not command:
         return
-    command, *args = split_command(command)
-    if command in commands_dict:
-        commands_dict[command].run(*args)
+
+    if command.startswith('run '):
+        keyword, *args = command.split(maxsplit=1)
     else:
-        print(f'{PROJECT_NAME}: {command}: command not found')
+        keyword, *args = split_command(command)
+
+    if keyword in commands_dict:
+        commands_dict[keyword].run(*args)
+    else:
+        print(f'{PROJECT_NAME}: {keyword}: command not found')
 
 
 def main():
-    """An entry point to an interactive shell"""
+    """The entry point to the interactive shell"""
 
     print(f'Welcome to {PROJECT_NAME} by {AUTHOR}')
     print('Type "help" for more information.')
