@@ -1,4 +1,4 @@
-# mipt-python-shell
+# tiny-python-shell
 
 MyShell &mdash; программа с частичной функциональностью bash.
 
